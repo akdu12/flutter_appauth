@@ -11,10 +11,16 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_appauth_platform_interface: ^2.0.0
+  flutter_appauth_web:
+    git:
+      url: https://github.com/akdu12/flutter_appauth.git
+      path: flutter_appauth_web
 
 flutter:
   plugin:
     platforms:
+      web:
+        default_package: flutter_appauth_web
       android:
         package: io.crossingthestreams.flutterappauth
         pluginClass: FlutterAppauthPlugin
