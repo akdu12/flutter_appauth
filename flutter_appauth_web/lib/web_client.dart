@@ -18,9 +18,9 @@ class WebClient {
       if (response.statusCode != 200) {
         print(jsonResponse["error"].toString());
         throw Exception(ERROR_MESSAGE
-          ..replaceFirst("%1", response.statusCode.toString())
-          ..replaceAll(
-              "%2", jsonResponse["error"].toString() ?? response.reasonPhrase));
+            .replaceFirst("%1", response.statusCode.toString())
+            .replaceAll("%2",
+                jsonResponse["error"]?.toString() ?? response.reasonPhrase));
       }
     } catch (e) {
       rethrow;
@@ -38,9 +38,9 @@ class WebClient {
       if (response.statusCode != 200) {
         print(jsonResponse["error"].toString());
         throw Exception(ERROR_MESSAGE
-          ..replaceFirst("%1", response.statusCode.toString())
-          ..replaceAll(
-              "%2", jsonResponse["error"].toString() ?? response.reasonPhrase));
+            .replaceFirst("%1", response.statusCode.toString())
+            .replaceAll("%2",
+                jsonResponse["error"]?.toString() ?? response.reasonPhrase));
       }
       return jsonResponse;
     } catch (e) {

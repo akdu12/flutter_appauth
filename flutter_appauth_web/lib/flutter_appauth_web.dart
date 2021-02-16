@@ -24,7 +24,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static const String _AUTHORIZE_ERROR_CODE = "authorize_failed";
 
   static const String _CODE_VERIFIER_STORAGE = "auth_code_verifier";
-  static const String _AUTHORIZE_DESTINATION_URL = "auth_destination_url";
 
   static final WebClient _webClient = WebClient();
   static final SessionStorage _sessionStorage = SessionStorage();
@@ -91,7 +90,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     var responseType = "code";
 
     var authUri =
-        "${serviceConfiguration.authorizationEndpoint}?client_id=${request.clientId}&redirect_uri=${Uri.encodeQueryComponent(request.redirectUrl)}&response_type=$responseType&scope=${Uri.encodeQueryComponent(request.scopes.join(' '))}&code_challenge_method=S256&code_challenge=$codeChallenge";
+        "${serviceConfiguration.authorizationEndpoint}?client_id=${request.clientId}&redirect_uri=${Uri.encodeQueryComponent(request.redirectUrl)}&response_type=$responseType&scope=${Uri.encodeQueryComponent(request.scopes?.join(' ') ?? "")}&code_challenge_method=S256&code_challenge=$codeChallenge";
 
     if (request.loginHint != null)
       authUri += "&login_hint=${Uri.encodeQueryComponent(request.loginHint)}";
@@ -111,7 +110,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         //Do this in an iframe instead of a popup because this is a silent renew
         loginResult = await openIframe(authUri, 'auth');
       } else {
-        _sessionStorage.save(_AUTHORIZE_DESTINATION_URL, getFullUrl());
         _sessionStorage.save(_CODE_VERIFIER_STORAGE, codeVerifier);
         _sessionStorage.saveAuthRequest(request);
         redirectTo(authUri);
@@ -164,9 +162,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
 
     return TokenResponse(
         jsonResponse["access_token"].toString(),
-        jsonResponse["refresh_token"] == null
-            ? null
-            : jsonResponse["refresh_token"].toString(),
+        jsonResponse["refresh_token"]?.toString(),
         DateTime.now().add(new Duration(seconds: jsonResponse["expires_in"])),
         jsonResponse["id_token"].toString(),
         jsonResponse["token_type"].toString(),
