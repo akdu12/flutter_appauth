@@ -71,6 +71,4 @@ Future<String> openPopUp(
   return c.future;
 }
 
-bool isRedirect() => html.window.top == html.window.self;
-
 void closeCurrentPopUp() => html.window.close();
