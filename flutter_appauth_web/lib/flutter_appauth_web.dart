@@ -4,20 +4,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:html' as html;
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'package:http/http.dart' as http;
-import 'package:pointycastle/digests/sha256.dart';
+
 import 'package:flutter_appauth_platform_interface/flutter_appauth_platform_interface.dart';
+import 'package:flutter_appauth_web/htmt_utils.dart';
+import 'package:flutter_appauth_web/session_storage.dart';
+import 'package:flutter_appauth_web/web_client.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'package:pointycastle/digests/sha256.dart';
 
 /// A Calculator.
 class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static const String _charset =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-  static const String _DISCOVERY_ERROR_MESSAGE_FORMAT =
-      "Error retrieving discovery document: [error: discovery_failed, description: %2]";
-  static const String _TOKEN_ERROR_MESSAGE_FORMAT =
-      "Failed to get token: [error: token_failed, description: %2]";
   static const String _AUTHORIZE_ERROR_MESSAGE_FORMAT =
       "Failed to authorize: [error: %1, description: %2]";
 
@@ -28,8 +26,12 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static const String _CODE_VERIFIER_STORAGE = "auth_code_verifier";
   static const String _AUTHORIZE_DESTINATION_URL = "auth_destination_url";
 
+  static final WebClient _webClient = WebClient();
+  static final SessionStorage _sessionStorage = SessionStorage();
+
   static registerWith(Registrar registrar) {
     FlutterAppAuthPlatform.instance = AppAuthWebPlugin();
+    checkRedirectionResult();
   }
 
   @override
@@ -109,12 +111,11 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         //Do this in an iframe instead of a popup because this is a silent renew
         loginResult = await openIframe(authUri, 'auth');
       } else {
-        html.window.sessionStorage[_AUTHORIZE_DESTINATION_URL] =
-            html.window.location.href;
-        html.window.sessionStorage[_CODE_VERIFIER_STORAGE] = codeVerifier;
-        html.window.location.assign(authUri);
+        _sessionStorage.save(_AUTHORIZE_DESTINATION_URL, getFullUrl());
+        _sessionStorage.save(_CODE_VERIFIER_STORAGE, codeVerifier);
+        _sessionStorage.saveAuthRequest(request);
+        redirectTo(authUri);
         return null;
-        //loginResult = await openPopUp(authUri, 'auth', 640, 600, true);
       }
     } on StateError catch (err) {
       throw StateError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
@@ -122,7 +123,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
           .replaceAll("%2", err.message));
     }
 
-    return processLoginResult(loginResult, codeVerifier);
+    return retrieveAuthResponse(loginResult, codeVerifier);
   }
 
   @override
@@ -158,16 +159,9 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     if (request.additionalParameters != null)
       body.addAll(request.additionalParameters);
 
-    final response =
-        await http.post(serviceConfiguration.tokenEndpoint, body: body);
+    final Map<String, dynamic> jsonResponse =
+        await _webClient.post(serviceConfiguration.tokenEndpoint, body);
 
-    final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-
-    if (response.statusCode != 200) {
-      print(jsonResponse["error"].toString());
-      throw ArgumentError(_TOKEN_ERROR_MESSAGE_FORMAT.replaceAll(
-          "%2", jsonResponse["error"].toString() ?? response.reasonPhrase));
-    }
     return TokenResponse(
         jsonResponse["access_token"].toString(),
         jsonResponse["refresh_token"] == null
@@ -179,15 +173,13 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         jsonResponse);
   }
 
-  static Future<AuthorizationTokenResponse> processStartup(
-      AuthorizationTokenRequest request) async {
-    final authUrl = html.window.location.href;
-    if (authUrl == null || authUrl.isEmpty) return null;
+  static Future<AuthorizationTokenResponse> checkRedirectionResult() async {
+    final authUrl = getFullUrl();
+    final request = _sessionStorage.retrieveAuthRequest();
+    if (authUrl == null || authUrl.isEmpty || request == null) return null;
 
-    final codeVerifier = html.window.sessionStorage[_CODE_VERIFIER_STORAGE];
-    html.window.sessionStorage.remove(_CODE_VERIFIER_STORAGE);
-
-    final authResult = processLoginResult(authUrl, codeVerifier);
+    final codeVerifier = _sessionStorage.getAndRemove(_CODE_VERIFIER_STORAGE);
+    final authResult = retrieveAuthResponse(authUrl, codeVerifier);
 
     final tokenResponse = await requestToken(TokenRequest(
         request.clientId, request.redirectUrl,
@@ -213,7 +205,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   }
 
   //returns null if full login is required
-  static AuthorizationResponse processLoginResult(
+  static AuthorizationResponse retrieveAuthResponse(
       String loginResult, String codeVerifier) {
     var resultUri = Uri.parse(loginResult.toString());
 
@@ -246,34 +238,19 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
           .replaceAll("%1", _AUTHORIZE_AND_EXCHANGE_CODE_ERROR_CODE)
           .replaceAll("%2", 'Login request returned no code'));
 
-    http.Response response;
-    if (clientSecret == null) {
-      response = await http.post(tokenEndpoint, body: {
-        "client_id": clientId,
-        "redirect_uri": redirectUrl,
-        "grant_type": "authorization_code",
-        "code_verifier": authResult.codeVerifier,
-        "code": authResult.authorizationCode
-      });
-    } else {
-      response = await http.post(tokenEndpoint, body: {
-        "client_id": clientId,
-        "redirect_uri": redirectUrl,
-        "client_secret": clientSecret,
-        "grant_type": "authorization_code",
-        "code_verifier": authResult.codeVerifier,
-        "code": authResult.authorizationCode
-      });
-    }
-    final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+    final body = {
+      "client_id": clientId,
+      "redirect_uri": redirectUrl,
+      "grant_type": "authorization_code",
+      "code_verifier": authResult.codeVerifier,
+      "code": authResult.authorizationCode
+    };
 
-    if (response.statusCode != 200) {
-      print(jsonResponse["error"].toString());
-      throw ArgumentError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
-          .replaceAll("%1", _AUTHORIZE_AND_EXCHANGE_CODE_ERROR_CODE)
-          .replaceAll(
-              "%2", jsonResponse["error"].toString() ?? response.reasonPhrase));
+    if (clientSecret != null) {
+      body["client_secret"] = clientSecret;
     }
+    final Map<String, dynamic> jsonResponse =
+        await _webClient.post(tokenEndpoint, body);
 
     return AuthorizationTokenResponse(
         jsonResponse["access_token"].toString(),
@@ -304,76 +281,10 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     if (discoveryUrl == null || discoveryUrl == '')
       discoveryUrl = "$issuer/.well-known/openid-configuration";
 
-    final response = await http.get(discoveryUrl);
-    if (response.statusCode != 200)
-      throw UnsupportedError(_DISCOVERY_ERROR_MESSAGE_FORMAT.replaceAll(
-          "%2", response.reasonPhrase));
-
-    final jsonResponse = jsonDecode(response.body);
+    final Map<String, dynamic> jsonResponse =
+        await _webClient.get(discoveryUrl);
     return AuthorizationServiceConfiguration(
         jsonResponse["authorization_endpoint"].toString(),
         jsonResponse["token_endpoint"].toString());
-  }
-
-  static Future<String> openPopUp(
-      String url, String name, int width, int height, bool center,
-      {String additionalOptions}) async {
-    var options =
-        'width=$width,height=$height,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no';
-    if (center) {
-      final top = (html.window.outerHeight - height) / 2 +
-          html.window.screen.available.top;
-      final left = (html.window.outerWidth - width) / 2 +
-          html.window.screen.available.left;
-
-      options += 'top=$top,left=$left';
-    }
-
-    if (additionalOptions != null && additionalOptions != '')
-      options += ',$additionalOptions';
-
-    final child = html.window.open(url, name, options);
-    final c = new Completer<String>();
-
-    html.window.onMessage.first.then((event) {
-      final url = event.data.toString();
-      print(url);
-      c.complete(url);
-      child.close();
-    });
-
-    //This handles the user closing the window without a response
-    while (!c.isCompleted) {
-      await Future.delayed(Duration(milliseconds: 500));
-      if (child.closed && !c.isCompleted)
-        c.completeError(StateError('User Closed'));
-
-      if (c.isCompleted) break;
-    }
-
-    return c.future;
-  }
-
-  static Future<String> openIframe(String url, String name) async {
-    final child = html.IFrameElement();
-    child.name = name;
-    child.src = url;
-    child.height = '10';
-    child.width = '10';
-    child.style.border = 'none';
-    child.style.display = 'none';
-
-    html.querySelector("body").children.add(child);
-
-    final c = new Completer<String>();
-
-    html.window.onMessage.first.then((event) {
-      final url = event.data.toString();
-      print(url);
-      c.complete(url);
-      html.querySelector("body").children.remove(child);
-    });
-
-    return c.future;
   }
 }
