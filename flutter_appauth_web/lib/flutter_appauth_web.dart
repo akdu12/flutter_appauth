@@ -113,7 +113,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         _sessionStorage.save(_CODE_VERIFIER_STORAGE, codeVerifier);
         _sessionStorage.saveAuthRequest(request);
         //redirectTo(authUri);
-        loginResult = await openPopUp(authUri, 'auth', 640, 600, true);
+        await openPopUp(authUri, 'auth', 640, 600, true);
         print(_sessionStorage.get("auth_code"));
         return null;
       }
@@ -177,7 +177,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     var authCode = resultUri.queryParameters['code'];
     if (authCode != null && authCode.isNotEmpty) {
       _sessionStorage.save("auth_code", authCode);
-      //closeCurrentPopUp();
+      closeCurrentPopUp();
     }
   }
 

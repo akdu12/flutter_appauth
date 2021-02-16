@@ -32,7 +32,7 @@ void redirectTo(String url) {
   html.window.location.assign(url);
 }
 
-Future<String> openPopUp(
+Future<void> openPopUp(
     String url, String name, int width, int height, bool center,
     {String additionalOptions}) async {
   var options =
@@ -50,25 +50,13 @@ Future<String> openPopUp(
     options += ',$additionalOptions';
 
   final child = html.window.open(url, name, options);
-  final c = new Completer<String>();
+  final c = new Completer();
 
-  html.window.onMessage.first.then((event) {
-    final url = event.data.toString();
-    print(url);
-    c.complete(url);
-    child.close();
-  });
-
-//This handles the user closing the window without a response
   while (!c.isCompleted) {
     await Future.delayed(Duration(milliseconds: 500));
-    if (child.closed && !c.isCompleted)
-      c.completeError(StateError('User Closed'));
-
-    if (c.isCompleted) break;
+    if (child.closed) c.complete();
   }
-
-  return c.future;
+  return;
 }
 
 void closeCurrentPopUp() => html.window.close();
