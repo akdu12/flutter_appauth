@@ -4,21 +4,21 @@ import 'package:flutter_appauth_platform_interface/flutter_appauth_platform_inte
 
 class SessionStorage {
   void save(String key, String value) {
-    html.window.sessionStorage[key] = value;
+    html.window.localStorage[key] = value;
   }
 
   void remove(String key) {
-    html.window.sessionStorage.remove(key);
+    html.window.localStorage.remove(key);
   }
 
   String getAndRemove(String key) {
-    final value = html.window.sessionStorage[key];
-    html.window.sessionStorage.remove(key);
+    final value = html.window.localStorage[key];
+    html.window.localStorage.remove(key);
     return value;
   }
 
   String get(String key) {
-    return html.window.sessionStorage[key];
+    return html.window.localStorage[key];
   }
 
   void saveAuthRequest(AuthorizationRequest request) {
