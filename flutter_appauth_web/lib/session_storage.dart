@@ -17,6 +17,10 @@ class SessionStorage {
     return value;
   }
 
+  String get(String key) {
+    return html.window.sessionStorage[key];
+  }
+
   void saveAuthRequest(AuthorizationRequest request) {
     save("client_id", request.clientId);
     save("redirect_uri", request.redirectUrl);

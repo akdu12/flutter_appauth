@@ -87,7 +87,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
             SHA256Digest().process(Uint8List.fromList(codeVerifier.codeUnits)))
         .replaceAll('=', '');
 
-
     var responseType = "code";
 
     var authUri =
@@ -113,7 +112,9 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
       } else {
         _sessionStorage.save(_CODE_VERIFIER_STORAGE, codeVerifier);
         _sessionStorage.saveAuthRequest(request);
-        redirectTo(authUri);
+        //redirectTo(authUri);
+        loginResult = await openPopUp(authUri, 'auth', 640, 600, true);
+        print(_sessionStorage.get("auth_code"));
         return null;
       }
     } on StateError catch (err) {
@@ -170,10 +171,21 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         jsonResponse);
   }
 
+  void saveAuthorizationCode() {
+    final url = getFullUrl();
+    var resultUri = Uri.parse(url);
+    var authCode = resultUri.queryParameters['code'];
+    if (authCode == null || authCode.isEmpty) {
+      _sessionStorage.save("auth_code", authCode);
+    }
+  }
+
   static Future<AuthorizationTokenResponse> checkRedirectionResult() async {
     final authUrl = getFullUrl();
     final request = _sessionStorage.retrieveAuthRequest();
-    if (authUrl == null || authUrl.isEmpty || request == null) return null;
+    if (request == null) {
+      return null;
+    }
 
     final codeVerifier = _sessionStorage.getAndRemove(_CODE_VERIFIER_STORAGE);
     final authResult = retrieveAuthResponse(authUrl, codeVerifier);

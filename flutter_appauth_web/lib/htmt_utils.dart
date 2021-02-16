@@ -31,3 +31,42 @@ String getFullUrl() {
 void redirectTo(String url) {
   html.window.location.assign(url);
 }
+
+Future<String> openPopUp(
+    String url, String name, int width, int height, bool center,
+    {String additionalOptions}) async {
+  var options =
+      'width=$width,height=$height,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no';
+  if (center) {
+    final top = (html.window.outerHeight - height) / 2 +
+        html.window.screen.available.top;
+    final left = (html.window.outerWidth - width) / 2 +
+        html.window.screen.available.left;
+
+    options += 'top=$top,left=$left';
+  }
+
+  if (additionalOptions != null && additionalOptions != '')
+    options += ',$additionalOptions';
+
+  final child = html.window.open(url, name, options);
+  final c = new Completer<String>();
+
+  html.window.onMessage.first.then((event) {
+    final url = event.data.toString();
+    print(url);
+    c.complete(url);
+    child.close();
+  });
+
+//This handles the user closing the window without a response
+  while (!c.isCompleted) {
+    await Future.delayed(Duration(milliseconds: 500));
+    if (child.closed && !c.isCompleted)
+      c.completeError(StateError('User Closed'));
+
+    if (c.isCompleted) break;
+  }
+
+  return c.future;
+}
