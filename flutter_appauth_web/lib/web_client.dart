@@ -22,6 +22,7 @@ class WebClient {
             .replaceAll("%2",
                 jsonResponse["error"]?.toString() ?? response.reasonPhrase));
       }
+      return jsonResponse;
     } catch (e) {
       rethrow;
     }
@@ -36,7 +37,6 @@ class WebClient {
       );
       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
       if (response.statusCode != 200) {
-        print(jsonResponse["error"].toString());
         throw Exception(ERROR_MESSAGE
             .replaceFirst("%1", response.statusCode.toString())
             .replaceAll("%2",
