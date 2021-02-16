@@ -30,7 +30,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
 
   static registerWith(Registrar registrar) {
     FlutterAppAuthPlatform.instance = AppAuthWebPlugin();
-    checkRedirectionResult();
+    saveAuthorizationCode();
   }
 
   @override
@@ -171,7 +171,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         jsonResponse);
   }
 
-  void saveAuthorizationCode() {
+  static void saveAuthorizationCode() {
     final url = getFullUrl();
     var resultUri = Uri.parse(url);
     var authCode = resultUri.queryParameters['code'];
