@@ -114,7 +114,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         _localStorage.save(_CODE_VERIFIER_STORAGE, codeVerifier);
         //redirectTo(authUri);
         await openPopUp(authUri, 'auth', 640, 600, true);
-        if(_localStorage.get(AUTH_REDIRECT_URL) != null){
+        if (_localStorage.get(AUTH_REDIRECT_URL) == null) {
           throw StateError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
               .replaceAll("%1", _AUTHORIZE_AND_EXCHANGE_CODE_ERROR_CODE)
               .replaceAll("%2", "enable to find Auth redirect code"));
