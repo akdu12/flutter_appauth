@@ -24,9 +24,10 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static const String _AUTHORIZE_ERROR_CODE = "authorize_failed";
 
   static const String _CODE_VERIFIER_STORAGE = "auth_code_verifier";
+  static const String AUTH_REDIRECT_URL = "auth_redirect_url";
 
   static final WebClient _webClient = WebClient();
-  static final SessionStorage _sessionStorage = SessionStorage();
+  static final LocalStorage _localStorage = LocalStorage();
 
   static registerWith(Registrar registrar) {
     FlutterAppAuthPlatform.instance = AppAuthWebPlugin();
@@ -110,12 +111,17 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         //Do this in an iframe instead of a popup because this is a silent renew
         loginResult = await openIframe(authUri, 'auth');
       } else {
-        _sessionStorage.save(_CODE_VERIFIER_STORAGE, codeVerifier);
-        _sessionStorage.saveAuthRequest(request);
+        _localStorage.save(_CODE_VERIFIER_STORAGE, codeVerifier);
         //redirectTo(authUri);
         await openPopUp(authUri, 'auth', 640, 600, true);
-        print(_sessionStorage.get("auth_code"));
-        return null;
+        if(_localStorage.get(AUTH_REDIRECT_URL) != null){
+          throw StateError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
+              .replaceAll("%1", _AUTHORIZE_AND_EXCHANGE_CODE_ERROR_CODE)
+              .replaceAll("%2", "enable to find Auth redirect code"));
+        }
+
+        return checkRedirectionResult(
+            request, _localStorage.get(AUTH_REDIRECT_URL), codeVerifier);
       }
     } on StateError catch (err) {
       throw StateError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
@@ -176,42 +182,16 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     var resultUri = Uri.parse(url);
     var authCode = resultUri.queryParameters['code'];
     if (authCode != null && authCode.isNotEmpty) {
-      _sessionStorage.save("auth_code", authCode);
+      _localStorage.save(AUTH_REDIRECT_URL, authCode);
       closeCurrentPopUp();
     }
   }
 
-  static Future<AuthorizationTokenResponse> checkRedirectionResult() async {
-    final authUrl = getFullUrl();
-    final request = _sessionStorage.retrieveAuthRequest();
-    if (request == null) {
-      return null;
-    }
-
-    final codeVerifier = _sessionStorage.getAndRemove(_CODE_VERIFIER_STORAGE);
-    final authResult = retrieveAuthResponse(authUrl, codeVerifier);
-
-    final tokenResponse = await requestToken(TokenRequest(
-        request.clientId, request.redirectUrl,
-        clientSecret: request.clientSecret,
-        scopes: request.scopes,
-        serviceConfiguration: request.serviceConfiguration,
-        additionalParameters: request.additionalParameters,
-        allowInsecureConnections: request.allowInsecureConnections,
-        authorizationCode: authResult.authorizationCode,
-        codeVerifier: authResult.codeVerifier,
-        discoveryUrl: request.discoveryUrl,
-        grantType: "authorization_code",
-        issuer: request.issuer));
-
-    return AuthorizationTokenResponse(
-        tokenResponse.accessToken,
-        tokenResponse.refreshToken,
-        tokenResponse.accessTokenExpirationDateTime,
-        tokenResponse.idToken,
-        tokenResponse.tokenType,
-        authResult.authorizationAdditionalParameters,
-        tokenResponse.tokenAdditionalParameters);
+  static Future<AuthorizationResponse> checkRedirectionResult(
+      AuthorizationRequest request,
+      String redirectUrl,
+      String codeVerifier) async {
+    return retrieveAuthResponse(redirectUrl, codeVerifier);
   }
 
   //returns null if full login is required
