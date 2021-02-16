@@ -87,6 +87,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
             SHA256Digest().process(Uint8List.fromList(codeVerifier.codeUnits)))
         .replaceAll('=', '');
 
+
     var responseType = "code";
 
     var authUri =
