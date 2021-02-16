@@ -177,7 +177,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     var authCode = resultUri.queryParameters['code'];
     if (authCode != null && authCode.isNotEmpty) {
       _sessionStorage.save("auth_code", authCode);
-      closeCurrentPopUp();
+      //closeCurrentPopUp();
     }
   }
 
