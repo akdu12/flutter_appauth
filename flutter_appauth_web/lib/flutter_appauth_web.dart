@@ -6,13 +6,12 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter_appauth_platform_interface/flutter_appauth_platform_interface.dart';
-import 'package:flutter_appauth_web/htmt_utils.dart';
-import 'package:flutter_appauth_web/session_storage.dart';
+import 'package:flutter_appauth_web/htmt_helper.dart';
+import 'package:flutter_appauth_web/local_storage.dart';
 import 'package:flutter_appauth_web/web_client.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
-/// A Calculator.
 class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static const String _charset =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
@@ -120,8 +119,8 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
               .replaceAll("%2", "enable to find Auth redirect code"));
         }
 
-        return checkRedirectionResult(
-            request, _localStorage.get(AUTH_REDIRECT_URL), codeVerifier);
+        return retrieveAuthResponse(
+            _localStorage.get(AUTH_REDIRECT_URL), codeVerifier);
       }
     } on StateError catch (err) {
       throw StateError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
@@ -187,14 +186,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     }
   }
 
-  static Future<AuthorizationResponse> checkRedirectionResult(
-      AuthorizationRequest request,
-      String redirectUrl,
-      String codeVerifier) async {
-    return retrieveAuthResponse(redirectUrl, codeVerifier);
-  }
-
-  //returns null if full login is required
   static AuthorizationResponse retrieveAuthResponse(
       String loginResult, String codeVerifier) {
     var resultUri = Uri.parse(loginResult.toString());
@@ -254,7 +245,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         jsonResponse);
   }
 
-  //to-do Cache this based on the url
+  //TODO Cache this based on the url
   static Future<AuthorizationServiceConfiguration> getConfiguration(
       AuthorizationServiceConfiguration serviceConfiguration,
       String discoveryUrl,
