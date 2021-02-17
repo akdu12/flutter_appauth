@@ -28,6 +28,12 @@ String getFullUrl() {
   return html.window.location.href;
 }
 
+String getFullDomain() {
+  final hostname = html.window.location.host;
+  final scheme = html.window.location.protocol;
+  return "$scheme//$hostname/";
+}
+
 void redirectTo(String url) {
   html.window.location.assign(url);
 }

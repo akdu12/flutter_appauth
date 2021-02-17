@@ -240,7 +240,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
 
   static void setRedirectUrlForWeb(dynamic request) {
     if (request is TokenRequest || request is AuthorizationRequest) {
-      request.redirectUrl = getFullUrl();
+      request.redirectUrl = getFullDomain();
     }
   }
 
