@@ -59,4 +59,11 @@ Future<void> openPopUp(
   return;
 }
 
-void closeCurrentPopUp() => html.window.close();
+void closeCurrentPopUp() {
+  if (isPopUpWindow()) {
+    html.window.close();
+  }
+}
+
+bool isPopUpWindow() =>
+    html.window.opener != html.window && !html.window.menubar.visible;
