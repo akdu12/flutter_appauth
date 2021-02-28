@@ -36,7 +36,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   @override
   Future<AuthorizationTokenResponse> authorizeAndExchangeCode(
       AuthorizationTokenRequest request) async {
-    setRedirectUrlForWeb(request);
     final authResult = await authorize(AuthorizationRequest(
         request.clientId, request.redirectUrl,
         loginHint: request.loginHint,
@@ -74,7 +73,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
 
   @override
   Future<AuthorizationResponse> authorize(AuthorizationRequest request) async {
-    setRedirectUrlForWeb(request);
     final serviceConfiguration = await getConfiguration(
         request.serviceConfiguration, request.discoveryUrl, request.issuer);
 
@@ -135,7 +133,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
 
   @override
   Future<TokenResponse> token(TokenRequest request) {
-    setRedirectUrlForWeb(request);
     return requestToken(request);
   }
 
@@ -236,12 +233,6 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         jsonResponse["token_type"].toString(),
         authResult.authorizationAdditionalParameters,
         jsonResponse);
-  }
-
-  static void setRedirectUrlForWeb(dynamic request) {
-    if (request is TokenRequest || request is AuthorizationRequest) {
-      request.redirectUrl = getFullDomain();
-    }
   }
 
   static void saveAuthorizationCode() {
