@@ -120,7 +120,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         }
 
         return retrieveAuthResponse(
-            _localStorage.get(AUTH_REDIRECT_URL), codeVerifier);
+            _localStorage.getAndRemove(AUTH_REDIRECT_URL), codeVerifier);
       }
     } on StateError catch (err) {
       throw StateError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
