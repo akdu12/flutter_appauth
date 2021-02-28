@@ -139,18 +139,24 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static Future<TokenResponse> requestToken(TokenRequest request) async {
     final serviceConfiguration = await getConfiguration(
         request.serviceConfiguration, request.discoveryUrl, request.issuer);
+    Map<String, String> headers;
 
     request.serviceConfiguration =
         serviceConfiguration; //Fill in the values from the discovery doc if needed for future calls
 
     var body = {
-      "client_id": request.clientId,
       "grant_type": request.grantType,
       "redirect_uri": request.redirectUrl
     };
 
-    if (request.clientSecret != null)
-      body["client_secret"] = request.clientSecret;
+    if (request.clientSecret != null) {
+      String basicAuth = 'Basic ' +
+          base64Encode(
+              utf8.encode('${request.clientId}:${request.clientSecret}'));
+      headers = {'authorization': basicAuth};
+    } else {
+      body["client_id"] = request.clientId;
+    }
 
     if (request.authorizationCode != null)
       body["code"] = request.authorizationCode;
@@ -164,8 +170,8 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
     if (request.additionalParameters != null)
       body.addAll(request.additionalParameters);
 
-    final Map<String, dynamic> jsonResponse =
-        await _webClient.post(serviceConfiguration.tokenEndpoint, body);
+    final Map<String, dynamic> jsonResponse = await _webClient
+        .post(serviceConfiguration.tokenEndpoint, body, headers: headers);
 
     return TokenResponse(
         jsonResponse["access_token"].toString(),

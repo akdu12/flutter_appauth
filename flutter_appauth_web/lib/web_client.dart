@@ -6,12 +6,9 @@ class WebClient {
   static const String ERROR_MESSAGE = "[statusCode: %1, description: %2]";
 
   Future<dynamic> post(String url, Map<String, dynamic> body,
-      {bool authenticated = true}) async {
+      {Map<String, String> headers}) async {
     try {
-      final response = await http.post(
-        url,
-        body: body,
-      );
+      final response = await http.post(url, body: body, headers: headers);
 
       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
 
