@@ -8,7 +8,8 @@ class WebClient {
   Future<dynamic> post(String url, Map<String, dynamic> body,
       {Map<String, String> headers}) async {
     try {
-      final response = await http.post(url, body: body, headers: headers);
+      final response =
+          await http.post(Uri.parse(url), body: body, headers: headers);
 
       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
 
@@ -30,7 +31,7 @@ class WebClient {
   ) async {
     try {
       final response = await http.get(
-        url,
+        Uri.parse(url),
       );
       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
       if (response.statusCode != 200) {
