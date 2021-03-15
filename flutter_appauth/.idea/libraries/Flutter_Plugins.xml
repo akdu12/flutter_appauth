@@ -2,7 +2,7 @@
   <library name="Flutter Plugins" type="FlutterPluginsLibraryType">
     <CLASSES>
       <root url="file://$PROJECT_DIR$" />
-      <root url="file://C:/flutter/.pub-cache/git/flutter_appauth-0569d4d5b77649e7bf9ce9f2d9e21cd8cd7e30c0/flutter_appauth_web" />
+      <root url="file://C:/flutter/.pub-cache/git/flutter_appauth-c031c080b0918b8756d457a8945ea7ee33e508d9/flutter_appauth_web" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
