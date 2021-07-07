@@ -42,19 +42,17 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         scopes: request.scopes,
         serviceConfiguration: request.serviceConfiguration,
         additionalParameters: request.additionalParameters,
-        allowInsecureConnections: request.allowInsecureConnections,
+        allowInsecureConnections: request.allowInsecureConnections ?? false,
         discoveryUrl: request.discoveryUrl,
         issuer: request.issuer,
-        preferEphemeralSession: request.preferEphemeralSession,
+        preferEphemeralSession: request.preferEphemeralSession ?? false,
         promptValues: request.promptValues));
-
-    if (authResult == null) return null;
 
     final tokenResponse = await requestToken(TokenRequest(
         request.clientId, request.redirectUrl,
         clientSecret: request.clientSecret,
         serviceConfiguration: request.serviceConfiguration,
-        allowInsecureConnections: request.allowInsecureConnections,
+        allowInsecureConnections: request.allowInsecureConnections ?? false,
         authorizationCode: authResult.authorizationCode,
         codeVerifier: authResult.codeVerifier,
         discoveryUrl: request.discoveryUrl,
@@ -93,20 +91,20 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         "${serviceConfiguration.authorizationEndpoint}?client_id=${request.clientId}&redirect_uri=${Uri.encodeQueryComponent(request.redirectUrl)}&response_type=$responseType&scope=${Uri.encodeQueryComponent(request.scopes?.join(' ') ?? "")}&code_challenge_method=S256&code_challenge=$codeChallenge";
 
     if (request.loginHint != null)
-      authUri += "&login_hint=${Uri.encodeQueryComponent(request.loginHint)}";
+      authUri += "&login_hint=${Uri.encodeQueryComponent(request.loginHint!)}";
 
     if (request.promptValues != null)
-      request.promptValues.forEach((element) {
+      request.promptValues!.forEach((element) {
         authUri += "&prompt=$element";
       });
     if (request.additionalParameters != null)
-      request.additionalParameters
+      request.additionalParameters!
           .forEach((key, value) => authUri += "&$key=$value");
 
     String loginResult;
     try {
       if (request.promptValues != null &&
-          request.promptValues.contains("none")) {
+          request.promptValues!.contains("none")) {
         //Do this in an iframe instead of a popup because this is a silent renew
         loginResult = await openIframe(authUri, 'auth');
       } else {
@@ -120,7 +118,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
         }
 
         return retrieveAuthResponse(
-            _localStorage.getAndRemove(AUTH_REDIRECT_URL), codeVerifier);
+            _localStorage.getAndRemove(AUTH_REDIRECT_URL)!, codeVerifier);
       }
     } on StateError catch (err) {
       throw StateError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
@@ -139,7 +137,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static Future<TokenResponse> requestToken(TokenRequest request) async {
     final serviceConfiguration = await getConfiguration(
         request.serviceConfiguration, request.discoveryUrl, request.issuer);
-    Map<String, String> headers;
+    late Map<String, String> headers;
 
     request.serviceConfiguration =
         serviceConfiguration; //Fill in the values from the discovery doc if needed for future calls
@@ -164,11 +162,11 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
       body["code_verifier"] = request.codeVerifier;
     if (request.refreshToken != null)
       body["refresh_token"] = request.refreshToken;
-    if (request.scopes != null && request.scopes.isNotEmpty)
-      body["scopes"] = request.scopes.join(" ");
+    if (request.scopes != null && request.scopes!.isNotEmpty)
+      body["scopes"] = request.scopes!.join(" ");
 
     if (request.additionalParameters != null)
-      body.addAll(request.additionalParameters);
+      body.addAll(request.additionalParameters!);
 
     final Map<String, dynamic> jsonResponse = await _webClient
         .post(serviceConfiguration.tokenEndpoint, body, headers: headers);
@@ -208,9 +206,9 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
       String clientId,
       String redirectUrl,
       String tokenEndpoint,
-      {String clientSecret}) async {
+      {String? clientSecret}) async {
     if (authResult.authorizationCode == null ||
-        authResult.authorizationCode.isEmpty)
+        authResult.authorizationCode!.isEmpty)
       throw ArgumentError(_AUTHORIZE_ERROR_MESSAGE_FORMAT
           .replaceAll("%1", _AUTHORIZE_AND_EXCHANGE_CODE_ERROR_CODE)
           .replaceAll("%2", 'Login request returned no code'));
@@ -253,9 +251,9 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
 
   //TODO Cache this based on the url
   static Future<AuthorizationServiceConfiguration> getConfiguration(
-      AuthorizationServiceConfiguration serviceConfiguration,
-      String discoveryUrl,
-      String issuer) async {
+      AuthorizationServiceConfiguration? serviceConfiguration,
+      String? discoveryUrl,
+      String? issuer) async {
     if ((discoveryUrl == null || discoveryUrl == '') &&
         (issuer == null || issuer == '') &&
         serviceConfiguration == null)

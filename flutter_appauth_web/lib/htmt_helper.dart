@@ -10,7 +10,7 @@ Future<String> openIframe(String url, String name) async {
   child.style.border = 'none';
   child.style.display = 'none';
 
-  html.querySelector("body").children.add(child);
+  html.querySelector("body")?.children.add(child);
 
   final completer = Completer<String>();
 
@@ -18,7 +18,7 @@ Future<String> openIframe(String url, String name) async {
     final url = event.data.toString();
     print(url);
     completer.complete(url);
-    html.querySelector("body").children.remove(child);
+    html.querySelector("body")?.children.remove(child);
   });
 
   return completer.future;
@@ -40,14 +40,14 @@ void redirectTo(String url) {
 
 Future<void> openPopUp(
     String url, String name, int width, int height, bool center,
-    {String additionalOptions}) async {
+    {String? additionalOptions}) async {
   var options =
       'width=$width,height=$height,toolbar=no,location=no,directories=no,status=no,menubar=no,copyhistory=no';
   if (center) {
     final top = (html.window.outerHeight - height) / 2 +
-        html.window.screen.available.top;
+        (html.window.screen?.available.top ?? 0);
     final left = (html.window.outerWidth - width) / 2 +
-        html.window.screen.available.left;
+        (html.window.screen?.available.left ?? 0);
 
     options += 'top=$top,left=$left';
   }
@@ -60,7 +60,7 @@ Future<void> openPopUp(
 
   while (!c.isCompleted) {
     await Future.delayed(Duration(milliseconds: 500));
-    if (child.closed) c.complete();
+    if (child.closed ?? false) c.complete();
   }
   return;
 }
@@ -72,4 +72,5 @@ void closeCurrentPopUp() {
 }
 
 bool isPopUpWindow() =>
-    html.window.opener != html.window && !html.window.menubar.visible;
+    html.window.opener != html.window &&
+    !(html.window.menubar?.visible ?? false);
