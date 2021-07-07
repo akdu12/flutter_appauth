@@ -10,7 +10,7 @@ import 'package:flutter_appauth_web/htmt_helper.dart';
 import 'package:flutter_appauth_web/local_storage.dart';
 import 'package:flutter_appauth_web/web_client.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'package:pointycastle/digests/sha256.dart';
+import 'package:crypto/crypto.dart';
 
 class AppAuthWebPlugin extends FlutterAppAuthPlatform {
   static const String _charset =
@@ -82,7 +82,7 @@ class AppAuthWebPlugin extends FlutterAppAuthPlatform {
 
     final codeChallenge = base64Url
         .encode(
-            SHA256Digest().process(Uint8List.fromList(codeVerifier.codeUnits)))
+            sha256.convert(Uint8List.fromList(codeVerifier.codeUnits)).bytes)
         .replaceAll('=', '');
 
     var responseType = "code";
